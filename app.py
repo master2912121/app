@@ -13,6 +13,12 @@ UPLOAD_FOLDER = 'uploads'
 CONVERTED_FOLDER = 'converted'
 LOG_FILE = 'logs/ingresos.txt'
 
+# Ensure necessary directories exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(CONVERTED_FOLDER, exist_ok=True)
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+
+
 @app.before_first_request
 def create_tables():
     conn = sqlite3.connect(DB_PATH)
@@ -35,14 +41,14 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+        # Use 'with' statement for database connection
         try:
-            c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-            conn.commit()
+            with sqlite3.connect(DB_PATH) as conn:
+                c = conn.cursor()
+                c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+                conn.commit()
         except sqlite3.IntegrityError:
             return "Usuario ya existe"
-        conn.close()
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -60,10 +66,6 @@ def login():
 
         if row and check_password_hash(row[0], password):
             session['user'] = username
-            # Ensure logs directory exists
-            log_dir = os.path.dirname(LOG_FILE)
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
             # Write to log file with correct newline
             with open(LOG_FILE, 'a') as f:
                 f.write("User: {} - Login at {}\n".format(username, datetime.now()))
@@ -93,4 +95,3 @@ def convert_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
