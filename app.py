@@ -19,16 +19,31 @@ os.makedirs(CONVERTED_FOLDER, exist_ok=True)
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
 
-@app.before_first_request
+import sqlite3
+import os # Importar os para manejar rutas si es necesario
+
+# Define la ruta de la base de datos
+# Asegúrate de que esta ruta sea accesible y donde quieres guardar tu DB
+DB_PATH = 'your_database.db' # <--- Define esta variable
+
+# Asegúrate de que el directorio para la DB exista si no está en la raíz
+# db_dir = os.path.dirname(DB_PATH)
+# if db_dir and not os.path.exists(db_dir):
+#     os.makedirs(db_dir)
+
+
+# @app.before_first_request # Asegúrate de que 'app' esté definido en tu aplicación Flask/otro framework
 def create_tables():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-                 id INTEGER PRIMARY KEY,
-                 username TEXT UNIQUE NOT NULL,
-                 password TEXT NOT NULL)''')
-    conn.commit()
-    conn.close()
+    # Usa un bloque 'with' para asegurar que la conexión se cierre
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+                     id INTEGER PRIMARY KEY,
+                     username TEXT UNIQUE NOT NULL,
+                     password TEXT NOT NULL)''')
+        conn.commit()
+    # La conexión se cierra automáticamente al salir del bloque 'with'
+
 
 @app.route('/')
 def index():
@@ -94,4 +109,4 @@ def convert_file():
     return send_file(converted_path, as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=8050)
