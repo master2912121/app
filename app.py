@@ -51,16 +51,22 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT password FROM users WHERE username = ?", (username,))
-        row = c.fetchone()
-        conn.close()
+
+        # Use 'with' statement for database connection
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            c.execute("SELECT password FROM users WHERE username = ?", (username,))
+            row = c.fetchone()
+
         if row and check_password_hash(row[0], password):
             session['user'] = username
+            # Ensure logs directory exists
+            log_dir = os.path.dirname(LOG_FILE)
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            # Write to log file with correct newline
             with open(LOG_FILE, 'a') as f:
-                f.write("User: {} - Login at {}
-".format(username, datetime.now()))
+                f.write("User: {} - Login at {}\n".format(username, datetime.now()))
             return redirect(url_for('index'))
         return "Credenciales incorrectas"
     return render_template('login.html')
